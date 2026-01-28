@@ -53,14 +53,3 @@ class MLP(nn.Module):
     def forward(self, x):
         feats = self.feature_extractor(x)
         return self.output_layer(feats)
-
-    def forward_with_batch_aggregation(self, x):
-        batch_size, n_vectors, input_dim = x.shape
-
-        x_flat = x.view(-1, input_dim)
-        feats = self.feature_extractor(x_flat)
-
-        feats = feats.view(batch_size, n_vectors, -1)
-        aggregated_feats = feats.sum(dim=1)
-
-        return self.output_layer(aggregated_feats)

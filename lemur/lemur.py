@@ -25,18 +25,19 @@ class Lemur:
         learn_counts: Optional[np.ndarray] = None,
         test: Optional[np.ndarray] = None,
         test_counts: Optional[np.ndarray] = None,
-        activation: str = "gelu",
         train_subset_size: int = 8192,
         learn_subset_size: int = 100000,
         ols_sample_size: int = 16384,
-        batch_size: int = 512,
-        epochs: int = 100,
         num_layers: int = 1,
         hidden_dim: int = 512,
         final_hidden_dim: Optional[int] = 2048,
+        activation: str = "gelu",
+        epochs: int = 100,
         lr: float = 3e-3,
+        batch_size: int = 512,
         grad_clip: Optional[float] = 0.5,
         force_retrain: bool = False,
+        verbose: bool = True,
     ) -> "Lemur":
 
         def validate_pair(
@@ -91,6 +92,7 @@ class Lemur:
                 learn_subset_size=learn_subset_size,
                 batch_size=batch_size,
                 grad_clip=grad_clip,
+                verbose=verbose,
             )
 
         cached_w = None
@@ -102,6 +104,7 @@ class Lemur:
         if cached_w is None:
             self.fit_corpus(
                 sample_size=ols_sample_size,
+                verbose=verbose,
             )
 
         return self
@@ -169,6 +172,7 @@ class Lemur:
         train_subset_size: int = 8192,
         learn_subset_size: int = 100000,
         grad_clip: Optional[float] = None,
+        verbose: bool = True,
     ) -> MLP:
         X_train, y_train, X_val, y_val = self.create_training_data(
             train_subset_size=train_subset_size,
@@ -248,13 +252,15 @@ class Lemur:
                         val_preds = model(X_val)
                         val_loss = loss_fn(val_preds, y_val).item()
                 metric_loss = val_loss
-                print(
-                    f"epoch {epoch + 1}/{epochs} train_loss={train_loss:.6f} "
-                    f"val_loss={val_loss:.6f}"
-                )
+                if verbose:
+                    print(
+                        f"epoch {epoch + 1}/{epochs} train_loss={train_loss:.6f} "
+                        f"val_loss={val_loss:.6f}"
+                    )
             else:
                 metric_loss = train_loss
-                print(f"epoch {epoch + 1}/{epochs} train_loss={train_loss:.6f}")
+                if verbose:
+                    print(f"epoch {epoch + 1}/{epochs} train_loss={train_loss:.6f}")
 
             if metric_loss < best_loss:
                 best_loss = metric_loss
@@ -416,6 +422,7 @@ class Lemur:
             max_segments = 1
 
         use_non_blocking = device.type == "cuda"
+        last_pct = -1
         with torch.inference_mode():
             U, S, Vh = torch.linalg.svd(Z, full_matrices=False)
             tol = torch.finfo(S.dtype).eps * max(Z.shape) * S.max()
@@ -424,9 +431,13 @@ class Lemur:
             Vh_t = Vh.T
 
             for seg_start in range(0, num_segments, max_segments):
-                if verbose:
-                    print(seg_start)
                 seg_end = min(seg_start + max_segments, num_segments)
+                if verbose:
+                    pct = int((seg_end * 100) / max(1, num_segments))
+                    if pct > last_pct:
+                        for step in range(last_pct + 1, pct + 1):
+                            print(f"Indexing documents... {step}%")
+                        last_pct = pct
                 row_start = train_offsets[seg_start]
                 row_end = train_offsets[seg_end]
 
@@ -451,7 +462,7 @@ class Lemur:
         with torch.inference_mode():
             if isinstance(X, tuple):
                 if len(X) != 2:
-                    raise ValueError("X must be a tuple of (test, test_counts)")
+                    raise ValueError("X must be a tuple of (queries, queries_counts)")
                 test, test_counts = X
                 x_flat = torch.tensor(test, dtype=torch.float32)
                 feats = self.mlp.feature_extractor(x_flat)
