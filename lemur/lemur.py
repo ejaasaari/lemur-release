@@ -463,13 +463,13 @@ class Lemur:
             if isinstance(X, tuple):
                 if len(X) != 2:
                     raise ValueError("X must be a tuple of (queries, queries_counts)")
-                test, test_counts = X
-                x_flat = torch.tensor(test, dtype=torch.float32)
+                queries, queries_counts = X
+                x_flat = torch.tensor(queries, dtype=torch.float32)
                 feats = self.mlp.feature_extractor(x_flat)
                 Q = torch.segment_reduce(
                     feats,
                     "sum",
-                    lengths=torch.from_numpy(test_counts),
+                    lengths=torch.from_numpy(queries_counts),
                     axis=0,
                 )
                 return Q.cpu().numpy() / 32

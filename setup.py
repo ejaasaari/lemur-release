@@ -17,13 +17,14 @@ class get_pybind_include:
         return pybind11.get_include()
 
 
-EXT_DIR = Path(__file__).parent / "lemur" / "_ext"
+EXT_DIR_REL = Path("lemur") / "_ext"
+EXT_DIR = Path(__file__).parent / EXT_DIR_REL
 
 ext_modules = [
     Extension(
         "lemur._maxsim",
-        [str(EXT_DIR / "bindings.cpp")],
-        include_dirs=[str(EXT_DIR), get_pybind_include()],
+        [str(EXT_DIR_REL / "bindings.cpp")],
+        include_dirs=[str(EXT_DIR_REL), get_pybind_include()],
         language="c++",
     )
 ]
