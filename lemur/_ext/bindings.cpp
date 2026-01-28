@@ -34,7 +34,7 @@ PYBIND11_MODULE(_maxsim, m) {
            py::arg("train"), py::arg("train_counts"))
 
       .def(
-          "batch_query_subset",
+          "rerank_subset",
           [](MaxSim &self, py::array_t<float> queries,
              py::array_t<int32_t> query_counts, int k,
              py::array_t<int> indices, int num_threads) {
@@ -42,8 +42,10 @@ PYBIND11_MODULE(_maxsim, m) {
             py::buffer_info counts_buf = query_counts.request();
             py::buffer_info indices_buf = indices.request();
 
-            if (queries_buf.ndim != 1) {
-              throw std::runtime_error("queries must be a 1-dimensional array");
+            if (queries_buf.ndim != 2 && queries_buf.ndim != 1) {
+              throw std::runtime_error(
+                  "queries must be a 2-dimensional array "
+                  "(total_query_rows, vec_dim) or a 1-dimensional flattened array");
             }
             if (counts_buf.ndim != 1) {
               throw std::runtime_error(
@@ -52,6 +54,20 @@ PYBIND11_MODULE(_maxsim, m) {
             if (indices_buf.ndim != 2) {
               throw std::runtime_error("indices must be a 2-dimensional array "
                                        "(num_queries, num_indices)");
+            }
+
+            bool queries_contiguous = false;
+            if (queries_buf.ndim == 2) {
+              queries_contiguous =
+                  queries_buf.strides[1] == sizeof(float) &&
+                  queries_buf.strides[0] ==
+                      queries_buf.shape[1] * sizeof(float);
+            } else {
+              queries_contiguous = queries_buf.strides[0] == sizeof(float);
+            }
+            if (!queries_contiguous) {
+              throw std::runtime_error(
+                  "queries array must be C-contiguous (use np.ascontiguousarray)");
             }
 
             bool indices_contiguous =
@@ -93,7 +109,7 @@ PYBIND11_MODULE(_maxsim, m) {
           py::arg("indices"), py::arg("num_threads") = -1)
 
       .def(
-          "batch_query_subset_fixed",
+          "rerank_subset_fixed",
           [](MaxSim &self, py::array_t<float> queries, int k,
              py::array_t<int> indices, int num_threads) {
             py::buffer_info queries_buf = queries.request();
