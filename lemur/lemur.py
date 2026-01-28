@@ -6,7 +6,7 @@ from typing import Optional, Union
 import numpy as np
 import torch
 
-from .maxsim import maxsim
+from .single_maxsim import single_maxsim
 from .model import MLP
 
 
@@ -28,16 +28,15 @@ class Lemur:
         activation: str = "gelu",
         train_subset_size: int = 8192,
         learn_subset_size: int = 100000,
+        ols_sample_size: int = 16384,
         batch_size: int = 512,
         epochs: int = 100,
+        num_layers: int = 1,
         hidden_dim: int = 512,
         final_hidden_dim: Optional[int] = 2048,
-        num_layers: int = 1,
         lr: float = 3e-3,
         grad_clip: Optional[float] = 0.5,
-        ols_sample_size: int = 16384,
         force_retrain: bool = False,
-        learn_mode: str = "default",
     ) -> "Lemur":
 
         def validate_pair(
@@ -62,35 +61,10 @@ class Lemur:
 
         validate_pair("train", train, train_counts)
         validate_pair("test", test, test_counts)
-
-        if learn_mode not in ("default", "corpus", "corpusquery", "query"):
-            raise ValueError(
-                "learn_mode must be one of: 'default', 'corpus', 'corpusquery', 'query'"
-            )
-
-        if learn_mode == "corpus":
+        validate_pair("learn", learn, learn_counts)
+        if learn is None:
             learn = train
             learn_counts = train_counts
-        elif learn_mode in ("corpusquery", "query"):
-            validate_pair("learn", learn, learn_counts)
-            if learn is None or learn_counts is None:
-                raise ValueError(
-                    "learn and learn_counts are required for learn_mode='corpusquery'/'query'"
-                )
-            num_corpus_points = len(train_counts)
-            if learn_counts.shape[0] < num_corpus_points:
-                raise ValueError("learn_counts must have at least as many entries as train_counts")
-            num_corpus_vectors = learn_counts[:num_corpus_points].sum()
-            if learn_mode == "corpusquery":
-                learn = learn[:num_corpus_vectors]
-                learn_counts = learn_counts[:num_corpus_points]
-            else:
-                learn = learn[num_corpus_vectors:]
-                learn_counts = learn_counts[num_corpus_points:]
-        else:
-            if learn is None:
-                raise ValueError("learn is required for learn_mode='default'")
-            validate_pair("learn", learn, learn_counts)
 
         self.train = train
         self.train_counts = train_counts
@@ -166,9 +140,9 @@ class Lemur:
             torch.tensor(self.test[test_subset_ix]).to(device) if self.test is not None else None
         )
 
-        y_train = maxsim(tmp_train, tmp_train_counts, X_train, block_bytes=block_bytes)
+        y_train = single_maxsim(tmp_train, tmp_train_counts, X_train, block_bytes=block_bytes)
         y_val = (
-            maxsim(tmp_train, tmp_train_counts, X_val, block_bytes=block_bytes)
+            single_maxsim(tmp_train, tmp_train_counts, X_val, block_bytes=block_bytes)
             if X_val is not None
             else None
         )
@@ -459,7 +433,9 @@ class Lemur:
                 if device.type != "cpu":
                     train_slice = train_slice.to(device, non_blocking=use_non_blocking)
                 counts_slice = counts_tensor[seg_start:seg_end]
-                Y_batch = (maxsim(train_slice, counts_slice, sampled) - self.mean) / self.std
+                Y_batch = (
+                    single_maxsim(train_slice, counts_slice, sampled) - self.mean
+                ) / self.std
 
                 UtY = U_t @ Y_batch
                 scaled = S_inv[:, None] * UtY

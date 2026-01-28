@@ -4,7 +4,7 @@ import numpy as np
 import torch
 
 
-class ChamferGPU:
+class MaxSimGPU:
     def __init__(self, train: np.ndarray, train_counts: np.ndarray) -> None:
         if train.ndim != 2:
             raise ValueError("train must be a 2D numpy array.")
