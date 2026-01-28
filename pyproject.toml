@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lemur"
+version = "0.1.0"
+description = "Lemur Python project"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "torch>=2.8.0",
+  "numpy>=2.2.5",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+
+[tool.isort]
+profile = "black"
+src_paths = ["lemur"]
+
+[tool.black]
+line-length = 100
+target-version = ['py312']
+include = '(\\.pyi?$)'
+exclude = '''
+
+(
+  /(
+      \.github
+    | \.vscode
+    | \.venv
+    | docs\/
+    | licenses\/
+    | lemur\/
+  )/
+)
+'''
+
+[tool.ruff]
+line-length = 100
+indent-width = 4
