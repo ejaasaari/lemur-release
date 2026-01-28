@@ -201,6 +201,7 @@ class Lemur:
         scaler = torch.amp.GradScaler("cuda", enabled=use_amp)
         best_loss = float("inf")
         best_state = None
+
         for epoch in range(epochs):
             model.train()
             perm = torch.randperm(X_train.shape[0], device=device)
@@ -365,7 +366,7 @@ class Lemur:
         self.W = W.to(self.device)
         return self.W
 
-    def compute_features(
+    def _compute_features_batched(
         self,
         data: torch.Tensor,
         batch_size: int = 2048,
@@ -397,7 +398,7 @@ class Lemur:
     ):
         sample_ix = np.random.choice(len(self.learn), size=sample_size, replace=False)
         sampled = torch.from_numpy(self.learn[sample_ix])
-        Z = self.compute_features(sampled)
+        Z = self._compute_features_batched(sampled)
 
         device = Z.device
         sampled = sampled.to(device)
@@ -433,9 +434,7 @@ class Lemur:
                 if device.type != "cpu":
                     train_slice = train_slice.to(device, non_blocking=use_non_blocking)
                 counts_slice = counts_tensor[seg_start:seg_end]
-                Y_batch = (
-                    single_maxsim(train_slice, counts_slice, sampled) - self.mean
-                ) / self.std
+                Y_batch = (single_maxsim(train_slice, counts_slice, sampled) - self.mean) / self.std
 
                 UtY = U_t @ Y_batch
                 scaled = S_inv[:, None] * UtY
@@ -447,9 +446,23 @@ class Lemur:
             self.save_w()
         return self.W
 
-    def query(self, X):
+    def compute_features(self, X):
         self.mlp.eval()
         with torch.inference_mode():
+            if isinstance(X, tuple):
+                if len(X) != 2:
+                    raise ValueError("X must be a tuple of (test, test_counts)")
+                test, test_counts = X
+                x_flat = torch.tensor(test, dtype=torch.float32)
+                feats = self.mlp.feature_extractor(x_flat)
+                Q = torch.segment_reduce(
+                    feats,
+                    "sum",
+                    lengths=torch.from_numpy(test_counts),
+                    axis=0,
+                )
+                return Q.cpu().numpy() / 32
+
             x = torch.from_numpy(X)
             if x.dtype != torch.float32:
                 x = x.to(torch.float32)
