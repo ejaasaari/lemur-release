@@ -472,7 +472,7 @@ class Lemur:
                     lengths=torch.from_numpy(queries_counts),
                     axis=0,
                 )
-                return Q.cpu().numpy() / 32
+                return Q / 32
 
             x = torch.from_numpy(X)
             if x.dtype != torch.float32:
@@ -480,4 +480,4 @@ class Lemur:
             B, N, D = x.shape
             feats = self.mlp.feature_extractor(x.flatten(0, 1))
             Q = feats.view(B, N, -1).mean(dim=1)
-        return Q.cpu().numpy()
+        return Q
