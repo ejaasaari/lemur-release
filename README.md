@@ -3,6 +3,7 @@
 Official implementation of the method described in the paper [LEMUR: Learned Multi-Vector Retrieval](https://arxiv.org/pdf/2601.21853) (ICML '26).
 
 LEMUR speeds up multi-vector similarity search for late interaction models such as ColBERT by learning a lightweight, corpus-specific reduction to single-vector similarity search. This makes it easy to integrate late interaction retrieval into existing single-vector retrieval infrastructure.
+<br/><br/>
 
 <img width="558" height="336" alt="Screenshot 2026-08-23 at 12 30 17" src="https://github.com/user-attachments/assets/83d519e1-a09c-4e09-aabf-1b775725c656" />
 
