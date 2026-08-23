@@ -1,6 +1,17 @@
 # LEMUR: Learned Multi-Vector Retrieval
 
-Official implementation of the method described in the paper [LEMUR: Learned Multi-Vector Retrieval](https://arxiv.org/pdf/2601.21853) (ICML '26). LEMUR speeds up multi-vector similarity search for late interaction models such as ColBERT by learning a lightweight, corpus-specific reduction to single-vector similarity search. 
+Official implementation of the method described in the paper [LEMUR: Learned Multi-Vector Retrieval](https://arxiv.org/pdf/2601.21853) (ICML '26).
+
+LEMUR speeds up multi-vector similarity search for late interaction models such as ColBERT by learning a lightweight, corpus-specific reduction to single-vector similarity search. This makes it easy to integrate late interaction retrieval into existing single-vector retrieval infrastructure.
+
+<img width="558" height="336" alt="Screenshot 2026-08-23 at 12 30 17" src="https://github.com/user-attachments/assets/83d519e1-a09c-4e09-aabf-1b775725c656" />
+
+## Implementations
+
+LEMUR has also been implemented in:
+
+- [Milvus](https://milvus.io/blog/announcing-milvus-3-lake-native-vector-search-and-a-more-powerful-retrieval-engine.md#3-StructArray-for-Nested-Vectors-and-Late-Interaction-Model)
+- [txtai](https://neuml.github.io/txtai/pipeline/train/lemur/)
 
 ## Installation
 
@@ -82,13 +93,15 @@ new_W = lemur.compute_weights(new_docs, new_docs_counts)
 
 If you use the library in an academic context, please consider citing the following paper:
 
-> Jääsaari, E., Hyvönen, V., & Roos, T. (2026). LEMUR: Learned Multi-Vector Retrieval. arXiv preprint arXiv:2601.21853.
+> Jääsaari, E., Hyvönen, V., & Roos, T. (2026). LEMUR: Learned Multi-Vector Retrieval. In Proceedings of the 43rd International Conference on Machine Learning (Proceedings of Machine Learning Research), Vol. 306.
 
 ```
-@article{jaasaari2026lemur,
-  title={{LEMUR}: Learned Multi-Vector Retrieval},
+@inproceedings{jaasaari2026lemur,
+  title={{LEMUR}: Learned multi-vector retrieval},
   author={J{\"a}{\"a}saari, Elias and Hyv{\"o}nen, Ville and Roos, Teemu},
-  journal={arXiv preprint arXiv:2601.21853},
+  booktitle={Proceedings of the 43rd International Conference on Machine Learning},
+  volume={306},
+  series={Proceedings of Machine Learning Research},
   year={2026}
 }
 ```
